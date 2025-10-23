@@ -1,1 +1,1 @@
-Created a script with RUST that track tokens with hot volumes on Pi blockchain.
+Pi Trending Bot is script built with pure RUST that tracks tokens with hot volumes on Pi blockchain.
