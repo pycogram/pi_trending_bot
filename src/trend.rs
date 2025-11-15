@@ -4,24 +4,28 @@ use rand::{seq::SliceRandom, Rng};
 use tokio::time::{sleep, Duration};
 use teloxide::prelude::*;
 
+use crate::pinmsg::update_pinned_message; 
 
-pub async fn trend_fn(bot: &Bot, client: &Client, url: &'static str)  -> Result<(), Box<dyn std::error::Error>> {
+
+pub async fn trend_fn(bot: &Bot, client: &Client, url: &'static str, tg_channel: &'static str)  -> Result<(), Box<dyn std::error::Error>> {
     loop {
         let resp = client.get(url).send().await?.text().await?;
         let json: Value = serde_json::from_str(&resp)?;
-        //println!("{json:?}");
+        println!("{json:?}");
 
         if let Some(records) = json["_embedded"]["records"].as_array() {
+
+            update_pinned_message(bot, tg_channel, records).await?;
+
             let mut rng = rand::thread_rng();
 
             if let Some(random_token) = records.choose(&mut rng) {
                 let code = escape_html(random_token["asset_code"].as_str().unwrap_or("N/A"));
                 let issuer = escape_html(random_token["asset_issuer"].as_str().unwrap_or("N/A"));
 
-                // Random emoji line
+                
                 let emoji_line = "🟠".repeat(rng.gen_range(3..=10));
 
-                // HTML message
                 let msg = format!(
                     "🚀 <b>PI TRENDING</b>\n\
                     <b>{}</b> <i>Buy!</i>\n\
@@ -33,8 +37,8 @@ pub async fn trend_fn(bot: &Bot, client: &Client, url: &'static str)  -> Result<
                     code, emoji_line, code, issuer
                 );
 
-                // Send to channel
-                bot.send_message("@pi_trending".to_string(), msg)
+                // Send to tg channel
+                bot.send_message(tg_channel.to_string(), msg)
                     .parse_mode(teloxide::types::ParseMode::Html)
                     .await?;
             }
@@ -45,7 +49,7 @@ pub async fn trend_fn(bot: &Bot, client: &Client, url: &'static str)  -> Result<
 }
 
 // Escape <, >, & to avoid Telegram HTML parse errors
-fn escape_html(s: &str) -> String {
+pub fn escape_html(s: &str) -> String {
     s.replace('&', "&amp;")
      .replace('<', "&lt;")
      .replace('>', "&gt;")
